@@ -1,7 +1,27 @@
 {{ partial "header.html" . }}
 
 {{ if eq .Kind "section" }}
-	{{ .Content }}
+  {{$wikilinks := .Content | findRE "\\[{2}([^\\]\\|\\r\\n]+?)\\]{2}" }} 
+  {{ $temp_content := $.Content }}
+
+  {{ range $wikilinks }}
+    {{$file_or_title := . | strings.TrimPrefix "[[" | strings.TrimSuffix "]]" }}
+
+    {{ range sort site.Pages }}
+      {{ if eq .File.TranslationBaseName $file_or_title }}
+      {{ $temp_content = ($temp_content | replaceRE (printf "\\[{2}%s\\]{2}" $file_or_title)
+      (printf "<a href=\"%s\">%s</a>" .RelPermalink .Title) )}}
+      {{end}}
+    {{end}}
+
+    {{range first 1 (where site.Pages "Params.title" $file_or_title)}}
+    {{$temp_content = ($temp_content | replaceRE (printf "\\[\\[%s\\]\\]" $file_or_title)
+    (printf "<a href=\"%s\">%s</a>" .RelPermalink $file_or_title) )}}
+    {{end}}
+
+
+  {{end}}
+  {{ $temp_content | safeHTML }}
 {{end}}
 
 {{ if or (eq .Kind "taxonomy") (eq .Kind "term") }}
